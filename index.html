@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NutriAI — AI Food Logger</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0F1117;--card:#1A1D27;--card2:#22263A;--border:#2A2F45;
+  --text:#F0F2FF;--muted:#7A82A8;--accent:#4F7CFF;--accent2:#6C3FE8;
+  --green:#22D08A;--amber:#F5A623;--red:#FF5A5A;--purple:#9B6DFF;
+  --teal:#2DD4BF;--pink:#FF6BA8;--radius:14px;--radius-sm:8px;
+}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex;justify-content:center;padding:20px 12px}
+.app{width:100%;max-width:420px;display:flex;flex-direction:column}
+.nav{display:flex;align-items:center;justify-content:space-between;padding:16px 0 12px;border-bottom:1px solid var(--border);margin-bottom:16px}
+.nav-logo{font-size:20px;font-weight:700;background:linear-gradient(135deg,#4285F4,#EA4335,#FBBC05,#34A853);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.nav-date{font-size:12px;color:var(--muted)}
+.nav-btn{width:36px;height:36px;border-radius:50%;background:var(--card);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--muted);font-size:16px}
+.tabs{display:flex;gap:4px;background:var(--card);border-radius:var(--radius);padding:4px;margin-bottom:20px}
+.tab{flex:1;padding:8px 4px;border-radius:10px;font-size:12px;font-weight:500;text-align:center;cursor:pointer;color:var(--muted);border:none;background:none;transition:all .2s}
+.tab.active{background:var(--card2);color:var(--text)}
+.macro-row{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:20px}
+.macro-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:12px 10px;text-align:center}
+.macro-val{font-size:18px;font-weight:700;margin-bottom:2px}
+.macro-lbl{font-size:10px;color:var(--muted)}
+.macro-bar{height:3px;border-radius:2px;margin-top:8px;background:var(--border)}
+.macro-fill{height:100%;border-radius:2px;transition:width .6s ease}
+.calories-ring{display:flex;flex-direction:column;align-items:center;margin-bottom:20px}
+.ring-wrap{position:relative;width:160px;height:160px;margin-bottom:12px}
+.ring-wrap svg{transform:rotate(-90deg)}
+.ring-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.ring-num{font-size:28px;font-weight:700}
+.ring-label{font-size:11px;color:var(--muted)}
+.ring-sub{font-size:12px;color:var(--muted);text-align:center}
+.meal-section{margin-bottom:16px}
+.meal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.meal-title{font-size:13px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.meal-kcal{font-size:12px;color:var(--muted)}
+.food-item{background:var(--card);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;gap:12px}
+.food-emoji{font-size:28px;width:42px;height:42px;display:flex;align-items:center;justify-content:center;background:var(--card2);border-radius:10px;flex-shrink:0}
+.food-info{flex:1;min-width:0}
+.food-name{font-size:14px;font-weight:500;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.food-meta{font-size:11px;color:var(--muted)}
+.food-kcal{font-size:14px;font-weight:600;color:var(--amber)}
+.health-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.dot-green{background:var(--green)}.dot-amber{background:var(--amber)}.dot-red{background:var(--red)}
+.scan-area{background:var(--card);border:2px dashed var(--border);border-radius:var(--radius);overflow:hidden;transition:border-color .3s;cursor:pointer}
+.scan-area:hover,.scan-area.drag-over{border-color:var(--accent)}
+.scan-placeholder{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 20px;gap:12px}
+.scan-icon{width:64px;height:64px;border-radius:50%;background:linear-gradient(135deg,rgba(66,133,244,.2),rgba(52,168,83,.2));display:flex;align-items:center;justify-content:center;font-size:28px}
+.scan-text{font-size:14px;font-weight:500}
+.scan-hint{font-size:12px;color:var(--muted);text-align:center}
+.scan-preview{width:100%;max-height:260px;object-fit:cover;display:block}
+.scan-methods{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:16px}
+.method-btn{background:var(--card);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px 8px;display:flex;flex-direction:column;align-items:center;gap:6px;cursor:pointer;font-size:11px;color:var(--muted);font-weight:500;transition:all .2s}
+.method-btn:hover,.method-btn.active{border-color:var(--accent);color:var(--accent);background:rgba(79,124,255,.08)}
+.method-icon{font-size:20px}
+.analyze-btn{width:100%;padding:14px;border-radius:var(--radius);background:linear-gradient(135deg,#4285F4,#34A853);border:none;color:#fff;font-size:15px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:opacity .2s;margin-top:12px}
+.analyze-btn:hover{opacity:.9}
+.result-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:12px}
+.result-header{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+.result-icon{font-size:24px}
+.result-name{font-size:16px;font-weight:600}
+.result-qty{font-size:12px;color:var(--muted)}
+.result-score{margin-left:auto;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:600}
+.score-good{background:rgba(34,208,138,.15);color:var(--green)}
+.score-ok{background:rgba(245,166,35,.15);color:var(--amber)}
+.score-bad{background:rgba(255,90,90,.15);color:var(--red)}
+.nutrient-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.nutrient{text-align:center;padding:8px 4px;background:var(--card2);border-radius:var(--radius-sm)}
+.nutrient-val{font-size:14px;font-weight:600;margin-bottom:2px}
+.nutrient-lbl{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+.swap-box{background:rgba(66,133,244,.08);border:1px solid rgba(66,133,244,.2);border-radius:var(--radius-sm);padding:12px;margin-top:10px}
+.swap-title{font-size:11px;color:#4285F4;font-weight:600;margin-bottom:6px}
+.swap-item{font-size:11px;color:var(--muted);padding:2px 0}
+.add-log-btn{width:100%;padding:10px;border-radius:var(--radius-sm);background:rgba(34,208,138,.12);border:1px solid rgba(34,208,138,.25);color:var(--green);font-size:13px;font-weight:600;cursor:pointer;margin-top:10px;transition:all .2s}
+.add-log-btn:hover{background:rgba(34,208,138,.2)}
+.voice-area{display:flex;flex-direction:column;align-items:center;padding:30px 20px;gap:16px}
+.voice-btn{width:80px;height:80px;border-radius:50%;background:linear-gradient(135deg,#4285F4,#34A853);border:none;display:flex;align-items:center;justify-content:center;font-size:32px;cursor:pointer}
+.voice-btn.recording{animation:pulse 1.2s infinite}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(66,133,244,.4)}70%{box-shadow:0 0 0 20px rgba(66,133,244,0)}100%{box-shadow:0 0 0 0 rgba(66,133,244,0)}}
+.voice-status{font-size:13px;color:var(--muted);text-align:center}
+.voice-input{width:100%;background:var(--card);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px 14px;color:var(--text);font-size:14px;font-family:inherit;resize:none;line-height:1.5}
+.voice-input:focus{outline:none;border-color:var(--accent)}
+.loading{display:flex;flex-direction:column;align-items:center;padding:30px 20px;gap:12px}
+.spinner{width:40px;height:40px;border:3px solid var(--border);border-top-color:#4285F4;border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-text{font-size:13px;color:var(--muted);text-align:center}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--green);color:#000;font-size:13px;font-weight:600;padding:10px 20px;border-radius:20px;z-index:999;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap}
+.toast.show{opacity:1}
+.ai-badge{display:inline-flex;align-items:center;gap:4px;background:rgba(66,133,244,.15);border:1px solid rgba(66,133,244,.25);border-radius:20px;padding:4px 10px;font-size:10px;color:#4285F4;font-weight:600;margin-bottom:14px}
+.empty{display:flex;flex-direction:column;align-items:center;padding:40px 20px;gap:10px;color:var(--muted);text-align:center}
+.empty-icon{font-size:40px;opacity:.4}
+.empty-text{font-size:13px}
+.coach-area{display:flex;flex-direction:column;gap:10px;max-height:380px;overflow-y:auto;margin-bottom:10px}
+.coach-msg{padding:12px 14px;border-radius:var(--radius-sm);font-size:13px;line-height:1.6;max-width:88%}
+.coach-msg.ai{background:var(--card2);border:1px solid var(--border);border-bottom-left-radius:4px}
+.coach-msg.user{background:linear-gradient(135deg,rgba(66,133,244,.25),rgba(52,168,83,.15));border:1px solid rgba(66,133,244,.25);margin-left:auto;border-bottom-right-radius:4px}
+.coach-input-row{display:flex;gap:8px;margin-top:4px}
+.coach-input{flex:1;background:var(--card);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 14px;color:var(--text);font-size:13px;font-family:inherit}
+.coach-input:focus{outline:none;border-color:var(--accent)}
+.coach-send{padding:10px 16px;background:linear-gradient(135deg,#4285F4,#34A853);border:none;border-radius:var(--radius-sm);color:#fff;font-size:13px;font-weight:600;cursor:pointer}
+.quick-chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+.chip{padding:6px 12px;background:var(--card);border:1px solid var(--border);border-radius:20px;font-size:11px;color:var(--muted);cursor:pointer;transition:all .2s;white-space:nowrap}
+.chip:hover{border-color:var(--accent);color:var(--accent)}
+.section-divider{text-align:center;font-size:11px;color:var(--muted);margin:8px 0 12px;position:relative}
+.section-divider::before,.section-divider::after{content:'';position:absolute;top:50%;width:30%;height:1px;background:var(--border)}
+.section-divider::before{left:0}.section-divider::after{right:0}
+.health-bar{height:4px;border-radius:2px;background:var(--border);margin:4px 0 2px;overflow:hidden}
+.health-fill{height:100%;border-radius:2px}
+.clear-btn{width:100%;margin-top:8px;padding:10px;background:none;border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--muted);font-size:12px;cursor:pointer}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="nav">
+    <div class="nav-logo">NutriAI</div>
+    <div class="nav-date" id="navDate"></div>
+    <button class="nav-btn">👤</button>
+  </div>
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('dashboard')">Dashboard</button>
+    <button class="tab" onclick="switchTab('scan')">Scan</button>
+    <button class="tab" onclick="switchTab('log')">Log</button>
+    <button class="tab" onclick="switchTab('coach')">Coach</button>
+  </div>
+  <div id="tab-dashboard"></div>
+  <div id="tab-scan" style="display:none"></div>
+  <div id="tab-log" style="display:none"></div>
+  <div id="tab-coach" style="display:none"></div>
+  <div class="toast" id="toast"></div>
+</div>
+
+<script>
+const API_URL = '/api/gemini';
+
+const MEALS={breakfast:[],lunch:[],dinner:[],snacks:[]};
+let activeTab='dashboard',scanImage=null,scanBase64=null,scanMime=null,scanResults=[],coachHistory=[],recognition=null;
+
+function today(){return new Date().toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'short'})}
+document.getElementById('navDate').textContent=today();
+
+function showToast(msg,dur=2200){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),dur)}
+
+function switchTab(tab){
+  document.querySelectorAll('.tab').forEach((b,i)=>{b.classList.toggle('active',['dashboard','scan','log','coach'][i]===tab)});
+  ['dashboard','scan','log','coach'].forEach(t=>document.getElementById('tab-'+t).style.display=t===tab?'':'none');
+  activeTab=tab;
+  if(tab==='dashboard')renderDashboard();
+  if(tab==='scan')renderScan();
+  if(tab==='log')renderLog();
+  if(tab==='coach')renderCoach();
+}
+
+function totalNutrient(key){return Object.values(MEALS).flat().reduce((s,f)=>s+(f[key]||0),0)}
+
+function renderDashboard(){
+  const el=document.getElementById('tab-dashboard');
+  const cals=Math.round(totalNutrient('calories')),goal=2000,pct=Math.min(cals/goal,1);
+  const protein=Math.round(totalNutrient('protein')),carbs=Math.round(totalNutrient('carbs')),fat=Math.round(totalNutrient('fat'));
+  const r=70,circ=2*Math.PI*r;
+  let mealHTML='';
+  for(const[meal,items]of Object.entries(MEALS)){
+    if(!items.length)continue;
+    const mc=items.reduce((s,f)=>s+(f.calories||0),0);
+    mealHTML+=`<div class="meal-section"><div class="meal-header"><span class="meal-title">${meal}</span><span class="meal-kcal">${Math.round(mc)} kcal</span></div>
+    ${items.map(f=>`<div class="food-item"><div class="food-emoji">${f.emoji||'🍽️'}</div><div class="food-info"><div class="food-name">${f.name}</div><div class="food-meta">${f.serving||'1 serving'} · P:${f.protein||0}g C:${f.carbs||0}g F:${f.fat||0}g</div></div><div><div class="food-kcal">${Math.round(f.calories||0)}</div><div style="font-size:9px;color:var(--muted);text-align:right">kcal</div></div><div class="health-dot ${f.score>=7?'dot-green':f.score>=5?'dot-amber':'dot-red'}"></div></div>`).join('')}</div>`;
+  }
+  el.innerHTML=`<div class="calories-ring"><div class="ring-wrap"><svg width="160" height="160" viewBox="0 0 160 160"><circle cx="80" cy="80" r="${r}" fill="none" stroke="var(--border)" stroke-width="12"/><circle cx="80" cy="80" r="${r}" fill="none" stroke="url(#g)" stroke-width="12" stroke-dasharray="${circ}" stroke-dashoffset="${circ*(1-pct)}" stroke-linecap="round"/><defs><linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#4285F4"/><stop offset="100%" stop-color="#34A853"/></linearGradient></defs></svg><div class="ring-center"><div class="ring-num">${cals}</div><div class="ring-label">of ${goal} kcal</div></div></div><div class="ring-sub">${goal-cals>0?`${goal-cals} kcal remaining`:'Daily goal reached! 🎉'}</div></div>
+  <div class="macro-row"><div class="macro-card"><div class="macro-val" style="color:var(--teal)">${protein}g</div><div class="macro-lbl">Protein</div><div class="macro-bar"><div class="macro-fill" style="width:${Math.min(protein/60*100,100)}%;background:var(--teal)"></div></div></div><div class="macro-card"><div class="macro-val" style="color:var(--amber)">${carbs}g</div><div class="macro-lbl">Carbs</div><div class="macro-bar"><div class="macro-fill" style="width:${Math.min(carbs/250*100,100)}%;background:var(--amber)"></div></div></div><div class="macro-card"><div class="macro-val" style="color:var(--pink)">${fat}g</div><div class="macro-lbl">Fat</div><div class="macro-bar"><div class="macro-fill" style="width:${Math.min(fat/65*100,100)}%;background:var(--pink)"></div></div></div></div>
+  ${Object.values(MEALS).flat().length===0?`<div class="empty"><div class="empty-icon">🍽️</div><div class="empty-text">No meals logged yet.<br>Tap <b>Scan</b> to get started.</div></div>`:mealHTML}`;
+}
+
+function renderScan(){
+  const el=document.getElementById('tab-scan');
+  el.innerHTML=`<div class="ai-badge">✨ Powered by Google Gemini</div><div class="scan-methods"><button class="method-btn active" id="method-photo"><span class="method-icon">📷</span>Photo</button><button class="method-btn" id="method-voice" onclick="switchToVoice()"><span class="method-icon">🎙️</span>Voice</button><button class="method-btn" id="method-barcode"><span class="method-icon">📦</span>Barcode</button></div><div id="scan-content"></div>`;
+  renderPhotoScan();
+}
+
+function renderPhotoScan(){
+  const el=document.getElementById('scan-content');
+  if(scanResults.length>0){renderResults(el);return;}
+  el.innerHTML=`<div class="scan-area" id="scanArea" onclick="document.getElementById('fi').click()">${scanImage?`<img src="${scanImage}" class="scan-preview"/>`:`<div class="scan-placeholder"><div class="scan-icon">📸</div><div class="scan-text">Upload a food photo</div><div class="scan-hint">Tap to choose from gallery or drag & drop</div></div>`}</div><input type="file" id="fi" accept="image/*" style="display:none" onchange="handleFile(event)">${scanImage?`<button class="analyze-btn" onclick="analyzeFood()">🔍 Identify & log food</button><button class="clear-btn" onclick="clearScan()">✕ Clear photo</button>`:''}`;
+  const area=document.getElementById('scanArea');
+  if(area){
+    area.addEventListener('dragover',e=>{e.preventDefault();area.classList.add('drag-over')});
+    area.addEventListener('dragleave',()=>area.classList.remove('drag-over'));
+    area.addEventListener('drop',e=>{e.preventDefault();area.classList.remove('drag-over');const f=e.dataTransfer.files[0];if(f&&f.type.startsWith('image/')){loadImageFile(f)}});
+  }
+}
+
+function loadImageFile(file){
+  const r=new FileReader();
+  r.onload=ev=>{
+    scanImage=ev.target.result;
+    scanBase64=scanImage.split(',')[1];
+    scanMime=file.type||'image/jpeg';
+    renderPhotoScan();
+  };
+  r.readAsDataURL(file);
+}
+
+function handleFile(e){const f=e.target.files[0];if(!f)return;loadImageFile(f);}
+function clearScan(){scanImage=null;scanBase64=null;scanMime=null;scanResults=[];renderPhotoScan()}
+
+async function callGemini(prompt, imageBase64=null, mimeType=null){
+  const body={prompt};
+  if(imageBase64){body.imageBase64=imageBase64;body.mimeType=mimeType;}
+  const resp=await fetch(API_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+  const data=await resp.json();
+  if(data.error)throw new Error(data.error);
+  return data.text||'';
+}
+
+function parseJSON(raw){
+  let cleaned=raw.trim();
+  if(cleaned.startsWith('```'))cleaned=cleaned.replace(/```json?/,'').replace(/```/g,'').trim();
+  const start=cleaned.indexOf('['),end=cleaned.lastIndexOf(']');
+  if(start!==-1&&end!==-1)cleaned=cleaned.slice(start,end+1);
+  return JSON.parse(cleaned);
+}
+
+async function analyzeFood(){
+  const el=document.getElementById('scan-content');
+  el.innerHTML=`<div class="loading"><div class="spinner"></div><div class="loading-text">Gemini is analysing your meal…<br><span style="font-size:11px;opacity:.6">Detecting foods, estimating portions & nutrients</span></div></div>`;
+  const prompt=`You are a professional nutritionist and food recognition AI. Analyse this food image and return a JSON array of ALL detected food items.
+
+For each item return exactly this structure:
+{"name":"food name","emoji":"relevant emoji","serving":"e.g. 1 cup / 150g / 1 piece","calories":number,"protein":number,"carbs":number,"fat":number,"fiber":number,"sugar":number,"sodium":number,"glycemic":"Low or Medium or High","score":number between 1 and 10,"meal":"breakfast or lunch or dinner or snacks","swaps":["healthier option 1","healthier option 2"]}
+
+Rules:
+- Detect every food item visible including drinks, sides, condiments
+- Use realistic Indian food nutrition values where applicable  
+- score is a health score 1-10 (10 = very healthy)
+- meal should match typical consumption time
+- Return ONLY a valid JSON array. No markdown, no explanation, no extra text.`;
+
+  try{
+    const text=await callGemini(prompt,scanBase64,scanMime);
+    scanResults=parseJSON(text);
+    renderResults(document.getElementById('scan-content'));
+  }catch(e){
+    document.getElementById('scan-content').innerHTML=`<div class="empty"><div class="empty-icon">⚠️</div><div class="empty-text">Couldn't analyse the image.<br><small style="color:var(--red)">${e.message}</small></div></div><button class="clear-btn" onclick="renderPhotoScan()">Try again</button>`;
+  }
+}
+
+function renderResults(el){
+  el.innerHTML=`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px"><div style="font-size:14px;font-weight:600">Found ${scanResults.length} item${scanResults.length!==1?'s':''}</div><button onclick="clearScan()" style="font-size:11px;color:var(--muted);background:none;border:none;cursor:pointer">← New scan</button></div>
+  ${scanResults.map((f,i)=>`<div class="result-card"><div class="result-header"><div class="result-icon">${f.emoji||'🍽️'}</div><div><div class="result-name">${f.name}</div><div class="result-qty">${f.serving}</div></div><div class="result-score ${f.score>=7?'score-good':f.score>=5?'score-ok':'score-bad'}">${f.score}/10</div></div><div class="nutrient-grid"><div class="nutrient"><div class="nutrient-val" style="color:var(--amber)">${Math.round(f.calories||0)}</div><div class="nutrient-lbl">Calories</div></div><div class="nutrient"><div class="nutrient-val" style="color:var(--teal)">${f.protein||0}g</div><div class="nutrient-lbl">Protein</div></div><div class="nutrient"><div class="nutrient-val" style="color:var(--accent)">${f.carbs||0}g</div><div class="nutrient-lbl">Carbs</div></div><div class="nutrient"><div class="nutrient-val" style="color:var(--pink)">${f.fat||0}g</div><div class="nutrient-lbl">Fat</div></div><div class="nutrient"><div class="nutrient-val" style="color:var(--green)">${f.fiber||0}g</div><div class="nutrient-lbl">Fiber</div></div><div class="nutrient"><div class="nutrient-val" style="color:var(--purple)">${f.glycemic||'—'}</div><div class="nutrient-lbl">Glycemic</div></div></div>${f.swaps&&f.swaps.length?`<div class="swap-box"><div class="swap-title">💡 Healthier swaps</div>${f.swaps.map(s=>`<div class="swap-item">→ ${s}</div>`).join('')}</div>`:''}<button class="add-log-btn" onclick="addToLog(${i})">✓ Add to ${f.meal||'log'}</button></div>`).join('')}`;
+}
+
+function addToLog(idx){
+  const f=scanResults[idx];
+  const meal=f.meal&&MEALS[f.meal]?f.meal:'snacks';
+  MEALS[meal].push(f);
+  scanResults.splice(idx,1);
+  showToast(`${f.emoji} ${f.name} added to ${meal}!`);
+  if(scanResults.length===0){scanImage=null;scanBase64=null;scanResults=[];renderScan();}
+  else renderResults(document.getElementById('scan-content'));
+}
+
+function switchToVoice(){
+  document.querySelectorAll('.method-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('method-voice').classList.add('active');
+  document.getElementById('scan-content').innerHTML=`<div class="voice-area"><button class="voice-btn" id="voiceBtn" onclick="toggleRecording()">🎙️</button><div class="voice-status" id="voiceStatus">Tap to start speaking</div></div><div style="padding:0 4px"><div class="section-divider">or type what you ate</div><textarea class="voice-input" id="voiceText" rows="3" placeholder="e.g. I had two chapatis, chicken curry and a glass of lassi for lunch"></textarea><button class="analyze-btn" onclick="analyzeVoice()">✨ Log this meal</button></div>`;
+}
+
+function toggleRecording(){
+  const btn=document.getElementById('voiceBtn'),status=document.getElementById('voiceStatus');
+  if(recognition){recognition.stop();recognition=null;btn.classList.remove('recording');status.textContent='Tap to start speaking';return;}
+  if('webkitSpeechRecognition' in window||'SpeechRecognition' in window){
+    recognition=new(window.SpeechRecognition||window.webkitSpeechRecognition)();
+    recognition.continuous=false;recognition.interimResults=true;recognition.lang='en-IN';
+    recognition.onresult=e=>{document.getElementById('voiceText').value=Array.from(e.results).map(r=>r[0].transcript).join('')};
+    recognition.onend=()=>{btn.classList.remove('recording');status.textContent='Tap to start speaking';recognition=null};
+    recognition.start();btn.classList.add('recording');status.textContent='🔴 Listening…';
+  }else{status.textContent='Voice not supported here. Please type below.';}
+}
+
+async function analyzeVoice(){
+  const text=document.getElementById('voiceText').value.trim();
+  if(!text){showToast('Please describe what you ate');return;}
+  document.getElementById('scan-content').innerHTML=`<div class="loading"><div class="spinner"></div><div class="loading-text">Gemini is understanding your meal…</div></div>`;
+  const prompt=`Parse this food log entry and return a JSON array of all foods mentioned.
+Entry: "${text}"
+For each food return: {"name","emoji","serving","calories":number,"protein":number,"carbs":number,"fat":number,"fiber":number,"sugar":number,"sodium":number,"glycemic":"Low/Medium/High","score":number 1-10,"meal":"breakfast/lunch/dinner/snacks","swaps":[]}
+Use realistic Indian food nutrition values. Return ONLY valid JSON array, no markdown.`;
+  try{
+    const raw=await callGemini(prompt);
+    scanResults=parseJSON(raw);
+    renderResults(document.getElementById('scan-content'));
+  }catch(e){
+    document.getElementById('scan-content').innerHTML=`<div class="empty"><div class="empty-icon">⚠️</div><div class="empty-text">Couldn't parse your input.<br><small>${e.message}</small></div></div><button class="clear-btn" onclick="switchToVoice()">Try again</button>`;
+  }
+}
+
+function renderLog(){
+  const el=document.getElementById('tab-log');
+  const foods=Object.values(MEALS).flat();
+  el.innerHTML=`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px"><div style="font-size:15px;font-weight:600">${foods.length} item${foods.length!==1?'s':''} logged today</div><button onclick="switchTab('scan')" style="padding:7px 14px;background:linear-gradient(135deg,#4285F4,#34A853);border:none;border-radius:20px;color:#fff;font-size:12px;font-weight:600;cursor:pointer">+ Add food</button></div>
+  ${foods.length===0?`<div class="empty"><div class="empty-icon">📋</div><div class="empty-text">Nothing logged yet.<br>Use Scan or Voice to add meals.</div></div>`:''}
+  ${Object.entries(MEALS).map(([meal,items])=>{if(!items.length)return'';const total=items.reduce((s,f)=>s+(f.calories||0),0);return`<div class="meal-section"><div class="meal-header"><span class="meal-title">${meal}</span><span class="meal-kcal">${Math.round(total)} kcal</span></div>${items.map((f,i)=>`<div class="food-item"><div class="food-emoji">${f.emoji||'🍽️'}</div><div class="food-info"><div class="food-name">${f.name}</div><div class="food-meta">${f.serving} · ${Math.round(f.calories||0)} kcal</div><div class="health-bar"><div class="health-fill" style="width:${f.score*10}%;background:${f.score>=7?'var(--green)':f.score>=5?'var(--amber)':'var(--red)'}"></div></div></div><button onclick="removeFood('${meal}',${i})" style="background:none;border:none;color:var(--muted);font-size:16px;cursor:pointer;padding:4px">✕</button></div>`).join('')}</div>`}).join('')}
+  ${foods.length>0?`<div class="result-card" style="margin-top:8px"><div style="font-size:13px;font-weight:600;margin-bottom:10px;color:#34A853">📊 Today's summary</div><div class="nutrient-grid"><div class="nutrient"><div class="nutrient-val" style="color:var(--amber)">${Math.round(totalNutrient('calories'))}</div><div class="nutrient-lbl">Calories</div></div><div class="nutrient"><div class="nutrient-val" style="color:var(--teal)">${Math.round(totalNutrient('protein'))}g</div><div class="nutrient-lbl">Protein</div></div><div class="nutrient"><div class="nutrient-val" style="color:var(--accent)">${Math.round(totalNutrient('carbs'))}g</div><div class="nutrient-lbl">Carbs</div></div><div class="nutrient"><div class="nutrient-val" style="color:var(--pink)">${Math.round(totalNutrient('fat'))}g</div><div class="nutrient-lbl">Fat</div></div><div class="nutrient"><div class="nutrient-val" style="color:var(--green)">${Math.round(totalNutrient('fiber'))}g</div><div class="nutrient-lbl">Fiber</div></div><div class="nutrient"><div class="nutrient-val" style="color:var(--red)">${Math.round(totalNutrient('sugar'))}g</div><div class="nutrient-lbl">Sugar</div></div></div></div>`:''}`;
+}
+
+function removeFood(meal,idx){MEALS[meal].splice(idx,1);showToast('Item removed');renderLog()}
+
+function renderCoach(){
+  const el=document.getElementById('tab-coach');
+  const foods=Object.values(MEALS).flat();
+  if(!coachHistory.length)coachHistory=[{role:'ai',text:`Hi! 👋 I'm your AI nutrition coach, powered by Google Gemini. ${foods.length?`You've logged ${foods.length} items today — want me to analyse your diet?`:'Start by logging a meal, or ask me anything about nutrition!'}`}];
+  el.innerHTML=`<div class="ai-badge">🤖 Powered by Google Gemini</div><div class="quick-chips">${['Can I eat biryani?','How much protein today?','What for dinner?','Is my diet balanced?','Healthy snack ideas'].map(q=>`<div class="chip" onclick="askCoach('${q}')">${q}</div>`).join('')}</div><div class="coach-area" id="coachArea">${coachHistory.map(m=>`<div class="coach-msg ${m.role}">${m.text}</div>`).join('')}</div><div class="coach-input-row"><input type="text" class="coach-input" id="coachInput" placeholder="Ask anything about your diet…" onkeydown="if(event.key==='Enter')sendCoach()"><button class="coach-send" onclick="sendCoach()">→</button></div>`;
+  const area=document.getElementById('coachArea');area.scrollTop=area.scrollHeight;
+}
+
+function askCoach(q){document.getElementById('coachInput').value=q;sendCoach()}
+
+async function sendCoach(){
+  const input=document.getElementById('coachInput');const q=input.value.trim();if(!q)return;input.value='';
+  const foods=Object.values(MEALS).flat();
+  const context=foods.length?`Today the user ate: ${foods.map(f=>`${f.name}(${Math.round(f.calories)}kcal,P:${f.protein}g,C:${f.carbs}g,F:${f.fat}g)`).join('; ')}.`:'No meals logged today.';
+  coachHistory.push({role:'user',text:q});renderCoach();
+  const prompt=`You are a friendly expert AI nutrition coach for an Indian user. ${context}\n\nUser question: ${q}\n\nAnswer in 2-4 sentences. Be specific, practical, and encouraging. Use minimal emojis. Do not use markdown formatting.`;
+  try{
+    const ans=await callGemini(prompt);
+    coachHistory.push({role:'ai',text:ans.trim()});renderCoach();
+  }catch(e){coachHistory.push({role:'ai',text:'Sorry, I had trouble connecting. Please try again.'});renderCoach();}
+}
+
+renderDashboard();
+</script>
+</body>
+</html>
